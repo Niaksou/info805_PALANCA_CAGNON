@@ -1,4 +1,3 @@
-```
 # TP Compilation - Génération de code λ-ada
 
 **Auteur :** Clément Palanca et Leny Cagnon
@@ -93,11 +92,11 @@ est structuré ainsi :
 
 ### Variables locales vs globales dans une lambda
 
-| Contexte             | Type de variable  | Accès généré                          |
-|----------------------|-------------------|---------------------------------------|
-| Programme principal  | Globale (`Let`)   | `mov eax, x` (segment DATA)           |
-| Corps de lambda      | Paramètre         | `mov eax, 8[ebp]` (pile, offset ebp)  |
-| Corps de lambda      | Globale (`Let`)   | `mov eax, x` (segment DATA)           |
+| Contexte            | Type de variable | Accès généré                         |
+| ------------------- | ---------------- | ------------------------------------ |
+| Programme principal | Globale (`Let`)  | `mov eax, x` (segment DATA)          |
+| Corps de lambda     | Paramètre        | `mov eax, 8[ebp]` (pile, offset ebp) |
+| Corps de lambda     | Globale (`Let`)  | `mov eax, x` (segment DATA)          |
 
 Les paramètres sont passés sur la **pile** via la convention `call`/`ret`.
 L'offset de chaque paramètre est calculé comme :
@@ -120,4 +119,3 @@ où `n` est le nombre de paramètres et `idx` l'index du paramètre (0-based).
 L'état `inLambda` et `lambdaParams` sont **sauvegardés et restaurés** à
 chaque entrée/sortie de lambda, ce qui permet la génération correcte de
 lambdas imbriquées.
-```
