@@ -1,0 +1,155 @@
+/* package et imports */
+package fr.usmb.m1isc.compilation.tp;
+import java_cup.runtime.Symbol;
+import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
+import fr.usmb.m1isc.compilation.tp.ast.*;
+
+/* inclusion du code */
+
+action code {:
+    private HashMap<String,Integer> vars = new HashMap<>();
+    private boolean erreur = false;
+:};
+
+parser code {:
+    public void report_error(String message, Object info) {
+        String m = "";
+        if (info instanceof java_cup.runtime.Symbol) {
+            Symbol s = ((Symbol) info);
+            if (s != null && s.left >= 0 ) {
+                m = "Ligne " + (s.left+1) + ", Colonne " + (s.right+1) + " : ";
+            }
+        }
+        m = m + message;
+        System.err.println(m);
+    }
+:};
+
+init with {:
+:};
+
+/* symboles terminaux */
+terminal PLUS, MOINS, MOINS_UNAIRE, MUL, DIV, MOD, NOT, OR, AND, PAR_G, PAR_D, SEMI, POINT, LET, INPUT, OUTPUT, IF, THEN, ELSE, WHILE, DO, EGAL, GT, GTE, NIL, ERROR;
+terminal LAMBDA, VIRGULE, LT, LTE;          // ← NOUVEAU
+terminal Integer ENTIER;
+terminal String IDENT;
+
+/* non terminaux */
+non terminal Node program, sequence, expression, expr;
+non terminal List<String> params;           // ← NOUVEAU
+non terminal List<Node>   args;             // ← NOUVEAU
+
+precedence nonassoc OUTPUT;
+precedence right OR;
+precedence right AND;
+precedence right NOT;
+precedence nonassoc EGAL;
+precedence nonassoc LT, LTE, GT, GTE;      // ← LT et LTE ajoutés
+precedence left PLUS, MOINS;
+precedence left MUL, DIV, MOD;
+precedence left MOINS_UNAIRE;
+
+/* grammaire */
+program ::=
+    sequence:s POINT
+    {: RESULT = s; :}
+    ;
+
+sequence ::=
+    expression:e1 SEMI sequence:e2
+    {: RESULT = new Sequence(e1, e2); :}
+    | expression:e
+    {: RESULT = e; :}
+    ;
+
+expression ::=
+    expr:e
+    {: RESULT = e; :}
+    | LET IDENT:nom EGAL expr:e
+    {: RESULT = new Let(nom, e); :}
+    | WHILE expr:cond DO expression:e
+    {: RESULT = new While(cond, e); :}
+    | IF expr:cond THEN expression:a1 ELSE expression:a2
+    {: RESULT = new IfThenElse(cond, a1, a2); :}
+    | error
+    {: RESULT = new Constant(0); :}
+    ;
+
+expr ::=
+    NOT expr:e
+    {: RESULT = new UnaryOp("NOT", e); :}
+    | expr:e1 AND expr:e2
+    {: RESULT = new BinaryOp("AND", e1, e2); :}
+    | expr:e1 OR expr:e2
+    {: RESULT = new BinaryOp("OR", e1, e2); :}
+    | expr:e1 EGAL expr:e2
+    {: RESULT = new BinaryOp("=", e1, e2); :}
+    | expr:e1 GT expr:e2
+    {: RESULT = new BinaryOp(">", e1, e2); :}   // ← CORRIGÉ (était "<")
+    | expr:e1 GTE expr:e2
+    {: RESULT = new BinaryOp(">=", e1, e2); :}  // ← CORRIGÉ (était "<=")
+    | expr:e1 LT expr:e2
+    {: RESULT = new BinaryOp("<", e1, e2); :}   // ← NOUVEAU
+    | expr:e1 LTE expr:e2
+    {: RESULT = new BinaryOp("<=", e1, e2); :}  // ← NOUVEAU
+    | expr:e1 PLUS expr:e2
+    {: RESULT = new BinaryOp("+", e1, e2); :}
+    | expr:e1 MOINS expr:e2
+    {: RESULT = new BinaryOp("-", e1, e2); :}
+    | expr:e1 MUL expr:e2
+    {: RESULT = new BinaryOp("*", e1, e2); :}
+    | expr:e1 DIV expr:e2
+    {: RESULT = new BinaryOp("/", e1, e2); :}
+    | expr:e1 MOD expr:e2
+    {: RESULT = new BinaryOp("mod", e1, e2); :}
+    | MOINS expr:e
+    {: RESULT = new UnaryOp("-", e); :}
+    %prec MOINS_UNAIRE
+    | OUTPUT expr:e
+    {: RESULT = new Output(e); :}
+    | INPUT
+    {: RESULT = new Input(); :}
+    | NIL
+    {: RESULT = new Nil(); :}
+    | ENTIER:n
+    {: RESULT = new Constant(n); :}
+    | IDENT:id
+    {: RESULT = new Variable(id); :}
+    | PAR_G sequence:e PAR_D
+    {: RESULT = e; :}
+
+    | IDENT:id PAR_G args:a PAR_D
+    {: RESULT = new FCall(id, a); :}
+
+    | LAMBDA PAR_G params:p PAR_D PAR_G expression:b PAR_D
+    {: RESULT = new Lambda(p, b); :}
+    ;
+
+params ::=
+    IDENT:i VIRGULE params:p
+    {:
+        List<String> l = new ArrayList<>();
+        l.add(i); l.addAll(p); RESULT = l;
+    :}
+    | IDENT:i
+    {:
+        List<String> l = new ArrayList<>();
+        l.add(i); RESULT = l;
+    :}
+    ;
+
+
+args ::=
+    expr:e VIRGULE args:a
+    {:
+        List<Node> l = new ArrayList<>();
+        l.add(e); l.addAll(a); RESULT = l;
+    :}
+    | expr:e
+    {:
+        List<Node> l = new ArrayList<>();
+        l.add(e); RESULT = l;
+    :}
+    ;
