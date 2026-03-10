@@ -1,6 +1,29 @@
-build/
+# Créer/remplacer le .gitignore
+cat > .gitignore << 'EOF'
+# Gradle
 .gradle/
+build/
+bin/
+
+# IntelliJ
+.idea/
+*.iml
+
+# Fichiers générés
+*.asm
 *.class
 *.jar
-.idea/
-*.asm
+!gradle/wrapper/gradle-wrapper.jar
+
+# Divers
+input.txt
+EOF
+
+# Retirer ces fichiers du suivi git (sans les supprimer localement)
+git rm -r --cached .gradle/ build/ bin/ .idea/
+git rm --cached ex1.asm pgcd.asm 2>/dev/null || true
+
+# Commit de nettoyage
+git add .gitignore
+git commit -m "chore: cleanup gitignore, remove build artifacts"
+git push origin main
